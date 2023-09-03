@@ -5,7 +5,7 @@ import {Contract, ethers, BigNumber} from 'ethers';
 import Position from "./Liquidity";
 
 export default function PoolCard(props){
-    const {pair, address,signer, tickerOne, tickerTwo, router, tokenOne, tokenTwo}  = props;
+    const {pair, address,signer, tickerOne, tickerTwo, router, tokenOne, tokenTwo, receive}  = props;
     const [messageApi, contextHolder] = message.useMessage();
     const [isSuccess, setIsSuccess] = useState(false);
     const [error, setError] = useState(null)
@@ -16,11 +16,14 @@ export default function PoolCard(props){
     const [liquidityPending, setLiquidityPending] = useState(false)
     const [liquidity, setLiquidity] = useState(null)
     const [isOpen, setIsOpen] = useState(false)
-    const [inputValue, setInputValue] = useState(25)
+    const [inputValue, setInputValue] = useState(0)
+    const [receiver, setReceiver] = useState(address)
     async function getUpdate(){
         console.log(pair)
+        if(pair != null){
         setBalance((await pair.balanceOf(address)).toString());
         setDecimal(await pair.decimals());
+      }
     }
 
     async function removeLiquidity(){
@@ -35,18 +38,24 @@ export default function PoolCard(props){
           BigNumber.from(liquidity),
           0,
           0,
-          address,
+          receive == false ? address : receiver,
           (Math.ceil((Date.now())/1000) + 300).toLocaleString('fullwide', {useGrouping:false})
          )
 
          const Tx = await tx.wait(1);
-         console.log(Tx)
+         if(Tx){console.log(Tx)
+         setIsOpen(false)
          setLiquidityPending(false)
-         setIsSuccess(true)
+         setBalance((await pair.balanceOf(address)).toString()/(10**decimal))
+         setIsSuccess(true)}
       }catch(err){
         console.log(err)
         setLiquidityPending(false)
-        setError(err)
+           if(err.data != undefined){
+          setError(err.data.message)
+          }else{
+            setError(err.message)
+          }
         setIsSuccess(true)
 
       }
@@ -60,15 +69,23 @@ export default function PoolCard(props){
             await pair.connect(signer)
              const tx = await pair.approve(router.address, liquidity);
              const Tx = await tx.wait(1);
-             setIsSuccess(true)
+            if(Tx){ 
+              setIsSuccess(true)
              setApprove(false)
-             setApprovePending(false) 
+             setApprovePending(false)} 
            }catch(err){
-            console.log(err.data.message)
             setIsSuccess(true)
             setApprovePending(false)
+            if(err.data != undefined){
             setError(err.data.message)
+            }else{
+              setError(err.message)
+            }
            }
+    }
+
+    function handleReceiver(e){
+      setReceiver(e.target.value)
     }
 
     async function getPercentage(e){
@@ -89,7 +106,7 @@ export default function PoolCard(props){
 
     useEffect(()=>{
        getUpdate()
-    }, [])
+    }, [pair, tickerOne, tickerTwo, tokenOne, tokenTwo])
 
     useEffect(()=>{
         messageApi.destroy();
@@ -155,7 +172,8 @@ export default function PoolCard(props){
         
         <div className="removeButtons">
           {approve == true ? <div className="approveButton" onClick={getApprove} disabled={isApprovePendeing}>sign</div> : null}
-          <div className="swapButton" disabled={approve == true && liquidity <= 0 && balance < liquidity && balance == 0 && liquidityPending} onClick={removeLiquidity}>remove Liquidity</div>
+          {receive == true ? <div className="receiver"  ><input className="receiverInput" placeholder="Enter a receiver address..." onChange={handleReceiver}/></div> : null}
+          {approve == true && liquidity <= 0 && balance < liquidity ? null : <div className="swapButton" disabled={liquidityPending} onClick={removeLiquidity}>remove Liquidity</div>}
         </div>
         </>
 
