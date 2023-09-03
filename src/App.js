@@ -3,10 +3,11 @@ import {useState, useEffect} from "react";
 import Header from "./components/Header";
 import Swap from "./components/Swap";
 import Liquidity from "./components/Liquidity";
+import USDIDashboard from "./components/UsdiDashborad";
 import { Routes, Route } from "react-router-dom";
 import {providers} from "ethers";
 import connection from "ethereactjs/menu";
-import {DexABI, routerAddress, factoryABI,  networkId, networkRPC} from "./contracts/ERC20";
+import {DexABI, routerAddress, factoryABI,  networkId, networkRPC,WNATIVE,  WNATIVEABI, ERC20ABI, AVAXiABI, AVAXi, USDi} from "./contracts/ERC20";
 
 
 function App() {
@@ -17,6 +18,9 @@ function App() {
   const [chainId, setChainId] = useState(null);
   const [router, setRouter] = useState("hello");
   const [factory, setFactory] = useState(null)
+  const [wrraped, setWrraped] = useState(null)
+  const [stackTokenOne, setStackOne] = useState(null);
+  const [stackTokenTwo, setStackTwo] = useState(null);
 
   const connect = async () => {
     try {
@@ -26,6 +30,9 @@ function App() {
       if(chainID == networkId){
         const signer = Provider.getSigner();
         setSigner(signer); 
+        if(router != null){
+          await router.connect(signer)
+        }
       }else{
         setSigner(null)
       }
@@ -38,12 +45,12 @@ function App() {
       setAddress(null);
       setSigner(null)
     }
-  };
-
+  }
+  
  
   useEffect(()=>{
     
-    
+    if(window.ethereum != null){
   
     if(window.ethereum.selectedAddress == null && signer == null){
       setSigner(null);
@@ -51,12 +58,16 @@ function App() {
     }
     if(signer != null && window.ethereum.selectedAddress != null){
    
-    }
-  }, [window.ethereum.selectedAddress, window.ethereum.chainId])
+    }}
+  }, [window.ethereum != null ? window.ethereum.selectedAddress : null, window.ethereum != null ? window.ethereum.chainId : null])
+  if(window.ethereum != null){
   window.ethereum.on('accountsChanged', connect);
   window.ethereum.on('chainChanged', connect);
+  }
+
 
   useEffect(()=>{
+    if(window.ethereum != null){
      const getRouter = async ()=>{
       connection(DexABI, routerAddress)
        .then(async(res)=> {
@@ -74,6 +85,32 @@ function App() {
         // .catch((err)=>setErr(err))
       })
       .catch((err)=>setErr(err))
+      connection(WNATIVEABI, WNATIVE)
+       .then((res)=> {
+        setWrraped(res)
+
+        
+        // .then((res)=>{
+        // setFactory(res)
+        // console.log(factory)
+        // })
+        // .catch((err)=>setErr(err))
+      })
+      .catch((err)=>setErr(err))
+
+      connection(AVAXiABI,AVAXi)
+      .then((res)=> {
+        setStackOne(res)
+
+     })
+     .catch((err)=>setErr(err))
+
+     connection(ERC20ABI,USDi)
+     .then((res)=> {
+       setStackTwo(res)
+
+    })
+    .catch((err)=>setErr(err))
      }
     //  const getFactory = async()=>{
     //   console.log(router)
@@ -83,7 +120,11 @@ function App() {
     //  }
      getRouter()
     //  getFactory()
+    }
   }, [])
+
+
+
   return (
 
     <div className="App">
@@ -91,8 +132,11 @@ function App() {
       }  address={address}  signer={signer}/>
       <div className="mainWindow">
         <Routes>
-          <Route path="/" element={<Swap chainId={chainId} signer={signer}  address={address} router={router} />} />
-          <Route path="/liquidity" element={<Liquidity chainId={chainId} signer={signer}  address={address}  router={router} factory={factory}/>} />
+          <Route path="/" element={<Swap chainId={chainId} signer={signer}  address={address} router={router} provider={provider} wrraped={wrraped}/>} />
+          <Route path="/liquidity" element={<Liquidity chainId={chainId} signer={signer}  address={address}  router={router}  provider={provider} factory={factory}/>} />
+          <Route path="/USDi" element={<USDIDashboard chainId={chainId} signer={signer} address={address} token={stackTokenOne}/>} />
+          <Route path="/AVAXi" element={<USDIDashboard chainId={chainId} signer={signer} address={address} token={stackTokenTwo}/>} />
+
         </Routes>
       </div>
 
