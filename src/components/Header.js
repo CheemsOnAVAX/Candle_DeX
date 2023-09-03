@@ -1,5 +1,5 @@
 import React, {useEffect} from "react";
-import Logo from "../dexlogo.png";
+import Logo from "../aveslogo.png";
 import { Link } from "react-router-dom";
 import {networkName, networkId} from "../contracts/ERC20"
 
